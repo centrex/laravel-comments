@@ -39,6 +39,13 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
+      # Path repositories (e.g. ../tallui) only exist in the local monorepo checkout;
+      # drop them so sibling packages resolve from Packagist in CI.
+      - name: Remove local path repositories
+        run: |
+          jq 'if .repositories then .repositories |= map(select(.type != "path")) else . end' composer.json > composer.tmp.json
+          mv composer.tmp.json composer.json
+
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "nesbot/carbon:${{ matrix.carbon }}" --no-interaction --no-update
@@ -48,4 +55,4 @@ jobs:
         run: composer show -D
 
       - name: Execute tests
-        run: vendor/bin/pest --ci
+        run: vendor/bin/pest --ci --no-coverage
